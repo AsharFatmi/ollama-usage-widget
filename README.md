@@ -27,12 +27,29 @@ A native macOS menu bar widget that tracks your **Ollama Cloud** usage (weekly &
 
 ## Install
 
+### One line (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/install.sh | bash
+```
+
+Downloads the latest release DMG, installs to `/Applications`, and registers a LaunchAgent so the widget starts at login and restarts if it crashes. Because the file comes via `curl` (no quarantine attribute), you won't see a Gatekeeper "unidentified developer" prompt.
+
+Already installed? Re-run the same command to upgrade. Remove with `curl -fsSL …/install.sh | bash -s uninstall`.
+
+### Homebrew
+
+```bash
+brew tap asharfatmi/tap
+brew install --cask ollama-usage-widget
+```
+
 ### From source
 
 ```bash
 git clone https://github.com/AsharFatmi/ollama-usage-widget.git
 cd ollama-usage-widget
-./scripts/install.sh
+./scripts/deploy.sh
 ```
 
 The script builds with SwiftPM, wraps the binary in an `.app` bundle, and registers a LaunchAgent so the widget starts at login and restarts if it crashes.
@@ -63,8 +80,15 @@ For compatibility with Hermes-agent environments, `~/.hermes/.env` is also read 
 ## Uninstall
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/install.sh | bash -s uninstall
+```
+
+Or manually:
+
+```bash
 launchctl bootout gui/$(id -u)/com.asharfatmi.ollama-usage-widget
 rm -rf ~/Applications/ollama-usage-widget
+rm -rf /Applications/OllamaUsageWidget.app
 rm ~/Library/LaunchAgents/com.asharfatmi.ollama-usage-widget.plist
 ```
 
