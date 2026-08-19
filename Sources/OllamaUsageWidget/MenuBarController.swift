@@ -85,26 +85,32 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
 
     private func updateStatusTitle() {
-        let percent = lastCloud?.limits.weekly.usage
-        statusItem.button?.image = makePillImage(percent: percent)
+        let weekly = lastCloud?.limits.weekly.usage
+        let session = lastCloud?.limits.session.usage
+        statusItem.button?.image = makePillImage(weekly: weekly, session: session)
     }
 
-    /// Black iPhone-island-style pill with the weekly percentage inside.
-    private func makePillImage(percent: Double?) -> NSImage {
-        let text: String
-        if let percent {
-            text = String(format: "%.1f%%", percent * 100)
+    /// Black iPhone-island-style pill: 🦙 + weekly % + session %.
+    private func makePillImage(weekly: Double?, session: Double?) -> NSImage {
+        let mono = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        let emojiFont = NSFont.systemFont(ofSize: 12)
+        let white = NSColor.white
+        let dim = NSColor.white.withAlphaComponent(0.75)
+
+        let str = NSMutableAttributedString()
+        str.append(NSAttributedString(string: "🦙 ", attributes: [.font: emojiFont, .foregroundColor: white]))
+        if let weekly {
+            str.append(NSAttributedString(string: String(format: "%.1f%%", weekly * 100), attributes: [.font: mono, .foregroundColor: white]))
+            if let session {
+                str.append(NSAttributedString(string: " · ", attributes: [.font: mono, .foregroundColor: dim]))
+                str.append(NSAttributedString(string: String(format: "%.1f%%", session * 100), attributes: [.font: mono, .foregroundColor: dim]))
+            }
         } else {
-            text = "—"
+            str.append(NSAttributedString(string: "—", attributes: [.font: mono, .foregroundColor: white]))
         }
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.white,
-        ]
-        let str = NSAttributedString(string: text, attributes: attrs)
+
         let textSize = str.size()
-        let padX: CGFloat = 14
+        let padX: CGFloat = 18
         let padY: CGFloat = 5
         let size = NSSize(width: textSize.width + padX * 2, height: textSize.height + padY * 2)
 
