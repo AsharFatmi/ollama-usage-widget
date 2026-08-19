@@ -13,6 +13,13 @@ final class PopoverViewController: NSViewController {
         return formatter
     }()
 
+    private let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
     init(controller: MenuBarController) {
         self.controller = controller
         super.init(nibName: nil, bundle: nil)
@@ -61,6 +68,69 @@ final class PopoverViewController: NSViewController {
             label.textColor = .secondaryLabelColor
             stack.addArrangedSubview(label)
         }
+
+        addLocalSection(to: stack)
+        addFooter(to: stack)
+    }
+
+    private func addLocalSection(to stack: NSStackView) {
+        let header = NSTextField(labelWithString: "Local Ollama")
+        header.font = .boldSystemFont(ofSize: 13)
+        stack.addArrangedSubview(header)
+        stack.setCustomSpacing(10, after: header)
+
+        if let local = controller?.lastLocal, !local.models.isEmpty {
+            for model in local.models {
+                let vram = String(format: "%.1f GB", Double(model.sizeVram) / 1_073_741_824)
+                stack.addArrangedSubview(makeRow(title: model.name, value: vram))
+            }
+        } else {
+            let label = NSTextField(labelWithString: "Ollama not running")
+            label.textColor = .secondaryLabelColor
+            stack.addArrangedSubview(label)
+        }
+    }
+
+    private func addFooter(to stack: NSStackView) {
+        let updated = controller?.lastUpdated.map { timeFormatter.string(from: $0) } ?? "—"
+        stack.addArrangedSubview(makeRow(title: "Last updated", value: updated, mono: false))
+
+        let refreshButton = NSButton(title: "Refresh", target: self, action: #selector(refreshTapped))
+        let setKeyButton = NSButton(title: "Set Key…", target: self, action: #selector(setKeyTapped))
+        let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitTapped))
+        let buttons = NSStackView(views: [refreshButton, setKeyButton, quitButton])
+        buttons.orientation = .horizontal
+        buttons.alignment = .centerY
+        buttons.spacing = 8
+        stack.addArrangedSubview(buttons)
+    }
+
+    @objc private func refreshTapped() {
+        controller?.refresh()
+    }
+
+    @objc private func setKeyTapped() {
+        let alert = NSAlert()
+        alert.messageText = "Set Ollama API Key"
+        alert.informativeText = "Enter your Ollama Cloud API key. It is stored in the macOS Keychain."
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+
+        let field = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
+        field.placeholderString = "ollama-api-key"
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let key = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { return }
+        if KeychainStore.save(key) {
+            controller?.refresh()
+        }
+    }
+
+    @objc private func quitTapped() {
+        NSApp.terminate(nil)
     }
 
     private func addCloudRows(_ cloud: UsageResponse, to stack: NSStackView) {
