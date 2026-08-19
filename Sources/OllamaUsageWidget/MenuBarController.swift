@@ -11,6 +11,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private(set) var lastLocal: PsResponse?
     private(set) var lastError: String?
     private(set) var lastUpdated: Date?
+    private(set) var sessionSince: Date?
+    private var previousSessionUsage: Double?
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -61,7 +63,16 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             let key = KeychainStore.read() ?? EnvFileReader.ollamaKey()
             if let key {
                 do {
-                    lastCloud = try await fetcher.fetchCloudUsage(apiKey: key)
+                    let cloud = try await fetcher.fetchCloudUsage(apiKey: key)
+                    // Session window isn't exposed by the API — infer it: when the
+                    // session usage drops (server reset), start a new window.
+                    if let prev = previousSessionUsage, cloud.limits.session.usage < prev {
+                        sessionSince = Date()
+                    } else if sessionSince == nil {
+                        sessionSince = Date()
+                    }
+                    previousSessionUsage = cloud.limits.session.usage
+                    lastCloud = cloud
                     lastError = nil
                 } catch {
                     lastError = "Cloud: \(error.localizedDescription)"

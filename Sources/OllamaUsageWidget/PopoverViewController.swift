@@ -20,6 +20,9 @@ final class PopoverViewController: NSViewController {
         return formatter
     }()
 
+    private var countdownTimer: Timer?
+    private var nextRefreshLabel: NSTextField?
+
     init(controller: MenuBarController) {
         self.controller = controller
         super.init(nibName: nil, bundle: nil)
@@ -97,6 +100,14 @@ final class PopoverViewController: NSViewController {
         let updated = controller?.lastUpdated.map { timeFormatter.string(from: $0) } ?? "—"
         stack.addArrangedSubview(makeRow(title: "Last updated", value: updated, mono: false))
 
+        let nextRefresh = NSTextField(labelWithString: "")
+        nextRefresh.textColor = .secondaryLabelColor
+        nextRefresh.font = .systemFont(ofSize: 12)
+        stack.addArrangedSubview(nextRefresh)
+        nextRefreshLabel = nextRefresh
+        updateCountdown()
+        startCountdownTimer()
+
         let refreshButton = NSButton(title: "Refresh", target: self, action: #selector(refreshTapped))
         let setKeyButton = NSButton(title: "Set Key…", target: self, action: #selector(setKeyTapped))
         let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitTapped))
@@ -105,6 +116,26 @@ final class PopoverViewController: NSViewController {
         buttons.alignment = .centerY
         buttons.spacing = 8
         stack.addArrangedSubview(buttons)
+    }
+
+    private func startCountdownTimer() {
+        countdownTimer?.invalidate()
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.updateCountdown() }
+        }
+    }
+
+    private func updateCountdown() {
+        guard let label = nextRefreshLabel else { return }
+        guard let last = controller?.lastUpdated else {
+            label.stringValue = "Next refresh in —"
+            return
+        }
+        let elapsed = Date().timeIntervalSince(last)
+        let remaining = max(0, 300 - elapsed)
+        let minutes = Int(remaining) / 60
+        let seconds = Int(remaining) % 60
+        label.stringValue = String(format: "Next refresh in %d:%02d", minutes, seconds)
     }
 
     @objc private func refreshTapped() {
@@ -140,10 +171,13 @@ final class PopoverViewController: NSViewController {
         let session = cloud.limits.session
 
         stack.addArrangedSubview(makeRow(title: "Weekly", value: String(format: "%.1f%%", weekly.usage * 100)))
-        stack.addArrangedSubview(makeRow(
-            title: "Session",
-            value: String(format: "%.1f%% · %@ req", session.usage * 100, grouped(session.models.reduce(0) { $0 + $1.requestCount }))
-        ))
+        let sessionValue: String
+        if let since = controller?.sessionSince {
+            sessionValue = String(format: "%.1f%% · %@ req · since %@", session.usage * 100, grouped(session.models.reduce(0) { $0 + $1.requestCount }), timeFormatter.string(from: since))
+        } else {
+            sessionValue = String(format: "%.1f%% · %@ req", session.usage * 100, grouped(session.models.reduce(0) { $0 + $1.requestCount }))
+        }
+        stack.addArrangedSubview(makeRow(title: "Session", value: sessionValue))
         stack.addArrangedSubview(makeRow(title: "Cost (4 wk)", value: "$\(cloud.activity.cost)"))
 
         for model in weekly.models {
