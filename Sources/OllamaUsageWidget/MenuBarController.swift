@@ -107,17 +107,22 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             str.append(NSAttributedString(string: "—", attributes: [.font: mono, .foregroundColor: white]))
         }
 
-        let textSize = str.size()
+        let textSize = str.boundingRect(
+            with: NSSize(width: .greatestFiniteMagnitude, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading]
+        ).size
         let padX: CGFloat = 18
-        let padY: CGFloat = 5
-        let size = NSSize(width: textSize.width + padX * 2, height: textSize.height + padY * 2)
+        let padY: CGFloat = 6
+        let size = NSSize(width: ceil(textSize.width) + padX * 2, height: ceil(textSize.height) + padY * 2)
 
         let image = NSImage(size: size)
         image.lockFocus()
         let pill = NSBezierPath(roundedRect: NSRect(origin: .zero, size: size), xRadius: size.height / 2, yRadius: size.height / 2)
         NSColor.black.setFill()
         pill.fill()
-        str.draw(at: NSPoint(x: padX, y: padY))
+        // Vertically center the text so emoji ascenders never clip at the top.
+        let drawY = (size.height - textSize.height) / 2
+        str.draw(at: NSPoint(x: padX, y: drawY))
         image.unlockFocus()
         image.isTemplate = false
         return image
