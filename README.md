@@ -2,7 +2,9 @@
 
 A native macOS menu bar widget that tracks your **Ollama Cloud** usage (weekly & session quotas, per-model request counts, cost) and your **local Ollama** server state — right from the menu bar.
 
-![Popover preview](https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/docs/popover.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/docs/popover.png" alt="Popover preview" width="420">
+</p>
 
 ## Features
 
