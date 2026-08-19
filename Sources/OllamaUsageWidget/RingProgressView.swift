@@ -47,7 +47,7 @@ final class RingCellView: NSView {
     private let percentLabel = NSTextField(labelWithString: "")
     private let captionLabel = NSTextField(labelWithString: "")
 
-    override var intrinsicContentSize: NSSize { NSSize(width: 150, height: 64) }
+    override var intrinsicContentSize: NSSize { NSSize(width: 170, height: 104) }
 
     init(title: String, percent: Double) {
         super.init(frame: .zero)
@@ -57,12 +57,12 @@ final class RingCellView: NSView {
         ring.ringColor = RingCellView.color(for: percent)
 
         percentLabel.stringValue = String(format: "%.1f%%", percent * 100)
-        percentLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        percentLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
         percentLabel.alignment = .center
         percentLabel.textColor = .labelColor
 
         captionLabel.stringValue = title
-        captionLabel.font = .systemFont(ofSize: 9)
+        captionLabel.font = .systemFont(ofSize: 10)
         captionLabel.textColor = .secondaryLabelColor
         captionLabel.alignment = .center
 
@@ -75,13 +75,13 @@ final class RingCellView: NSView {
 
         NSLayoutConstraint.activate([
             ring.centerXAnchor.constraint(equalTo: centerXAnchor),
-            ring.topAnchor.constraint(equalTo: topAnchor),
-            ring.widthAnchor.constraint(equalToConstant: 64),
-            ring.heightAnchor.constraint(equalToConstant: 64),
+            ring.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            ring.widthAnchor.constraint(equalToConstant: 88),
+            ring.heightAnchor.constraint(equalToConstant: 88),
             percentLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            percentLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -4),
+            percentLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -7),
             captionLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            captionLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 10),
+            captionLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 9),
         ])
     }
 
