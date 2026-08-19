@@ -170,10 +170,11 @@ final class PopoverViewController: NSViewController {
         let weekly = cloud.limits.weekly
         let session = cloud.limits.session
 
-        stack.addArrangedSubview(makeRow(title: "Weekly", value: String(format: "%.1f%%", weekly.usage * 100)))
-        stack.addArrangedSubview(makeRow(
+        stack.addArrangedSubview(makeBarRow(title: "Weekly", value: String(format: "%.1f%%", weekly.usage * 100), progress: weekly.usage))
+        stack.addArrangedSubview(makeBarRow(
             title: "Session (5h)",
-            value: String(format: "%.1f%% · %@ req", session.usage * 100, grouped(session.models.reduce(0) { $0 + $1.requestCount }))
+            value: String(format: "%.1f%% · %@ req", session.usage * 100, grouped(session.models.reduce(0) { $0 + $1.requestCount })),
+            progress: session.usage
         ))
         stack.addArrangedSubview(makeRow(title: "Cost (4 wk)", value: "$\(cloud.activity.cost)"))
 
@@ -199,5 +200,36 @@ final class PopoverViewController: NSViewController {
         row.alignment = .firstBaseline
         row.spacing = 8
         return row
+    }
+
+    /// Title + value on one line, with a progress bar underneath (usage fraction).
+    private func makeBarRow(title: String, value: String, progress: Double) -> NSView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.font = .systemFont(ofSize: 13)
+
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+
+        let header = NSStackView(views: [titleLabel, valueLabel])
+        header.orientation = .horizontal
+        header.alignment = .firstBaseline
+        header.spacing = 8
+
+        let bar = NSProgressIndicator()
+        bar.isIndeterminate = false
+        bar.style = .bar
+        bar.minValue = 0
+        bar.maxValue = 1
+        bar.doubleValue = min(max(progress, 0), 1)
+        bar.controlSize = .small
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        bar.widthAnchor.constraint(equalToConstant: 300).isActive = true
+
+        let column = NSStackView(views: [header, bar])
+        column.orientation = .vertical
+        column.alignment = .leading
+        column.spacing = 3
+        return column
     }
 }
