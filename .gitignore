@@ -1,3 +1,9 @@
 .build/
 .swiftpm/
 .DS_Store
+.hermes.md
+
+# Never commit real credentials
+.env
+.env.local
+!/.env.example
