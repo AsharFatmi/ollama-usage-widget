@@ -25,18 +25,6 @@ final class ActivityChartView: NSView {
         let w = bounds.width - padX * 2
         let h = bounds.height - padY * 2
 
-        // Grid lines (25/50/75/100%)
-        let gridAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 8), .foregroundColor: NSColor.tertiaryLabelColor]
-        for f in [0.25, 0.5, 0.75, 1.0] {
-            let y = padY + h * (1 - f)
-            let line = NSBezierPath()
-            line.move(to: NSPoint(x: padX, y: y))
-            line.line(to: NSPoint(x: bounds.width - padX, y: y))
-            line.lineWidth = 0.5
-            NSColor.quaternaryLabelColor.setStroke()
-            line.stroke()
-        }
-
         // Area fill under the line
         let n = values.count
         let step = w / CGFloat(n - 1)
