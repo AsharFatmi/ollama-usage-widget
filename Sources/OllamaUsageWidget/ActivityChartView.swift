@@ -56,13 +56,28 @@ final class ActivityChartView: NSView {
             dot.fill()
         }
 
-        // Day labels (S M T W T F S)
-        let days = ["S", "M", "T", "W", "T", "F", "S"]
+        // Day labels: day-of-month (13 14 15 … 19), ending on today
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
         let dayAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 9), .foregroundColor: NSColor.secondaryLabelColor]
+        let dayFormatter = DateFormatter()
+        dayFormatter.dateFormat = "d"
         for i in 0..<n {
+            let date = cal.date(byAdding: .day, value: -(n - 1 - i), to: today)!
+            let label = dayFormatter.string(from: date) as NSString
+            let labelSize = label.size(withAttributes: dayAttrs)
             let x = padX + CGFloat(i) * step
-            let label = days[i % 7] as NSString
-            label.draw(at: NSPoint(x: x - 4, y: 1), withAttributes: dayAttrs)
+            // Edge-align the first/last labels with extra breathing room so
+            // they never clip at the border.
+            let drawX: CGFloat
+            if i == 0 {
+                drawX = padX + 8
+            } else if i == n - 1 {
+                drawX = bounds.width - padX - 8 - labelSize.width
+            } else {
+                drawX = x - labelSize.width / 2
+            }
+            label.draw(at: NSPoint(x: drawX, y: 1), withAttributes: dayAttrs)
         }
     }
 }
