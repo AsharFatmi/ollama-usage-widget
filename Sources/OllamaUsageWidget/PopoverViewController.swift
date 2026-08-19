@@ -61,8 +61,10 @@ final class PopoverViewController: NSViewController {
             let label = NSTextField(wrappingLabelWithString: error)
             label.textColor = .systemRed
             label.font = .systemFont(ofSize: 12)
-            label.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
             stack.addArrangedSubview(label)
+            // Activate after the label is in the hierarchy (crash otherwise:
+            // "constraint ... have no common ancestor")
+            label.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         } else {
             let label = NSTextField(labelWithString: "Loading…")
             label.textColor = .secondaryLabelColor
