@@ -1,16 +1,92 @@
 import AppKit
 
 @MainActor
-final class MenuBarController: NSObject {
+final class MenuBarController: NSObject, NSPopoverDelegate {
     private let statusItem: NSStatusItem
+    private let popover = NSPopover()
+    private let fetcher = UsageFetcher()
+    private var timer: Timer?
+
+    private(set) var lastCloud: UsageResponse?
+    private(set) var lastLocal: PsResponse?
+    private(set) var lastError: String?
+    private(set) var lastUpdated: Date?
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
+        setupStatusItem()
+        setupPopover()
+        startTimer()
+        refresh()
+    }
+
+    private func setupStatusItem() {
         if let button = statusItem.button {
             button.title = "🦙 —"
+            button.target = self
+            button.action = #selector(togglePopover)
         }
     }
 
-    func stop() {}
+    private func setupPopover() {
+        popover.behavior = .transient
+        popover.delegate = self
+        popover.contentViewController = PopoverViewController(controller: self)
+    }
+
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
+    }
+
+    func stop() {
+        timer?.invalidate()
+    }
+
+    @objc private func togglePopover() {
+        if popover.isShown {
+            popover.performClose(nil)
+        } else {
+            refresh()
+            if let button = statusItem.button {
+                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            }
+        }
+    }
+
+    func refresh() {
+        Task {
+            let key = KeychainStore.read() ?? EnvFileReader.ollamaKey()
+            if let key {
+                do {
+                    lastCloud = try await fetcher.fetchCloudUsage(apiKey: key)
+                    lastError = nil
+                } catch {
+                    lastError = "Cloud: \(error.localizedDescription)"
+                }
+            } else {
+                lastError = "No API key set — use Set Key… in the popover"
+            }
+            do {
+                lastLocal = try await fetcher.fetchLocalProcesses()
+            } catch {
+                lastLocal = nil // local Ollama offline is normal; don't clobber lastError
+            }
+            lastUpdated = Date()
+            updateStatusTitle()
+            (popover.contentViewController as? PopoverViewController)?.reloadData()
+        }
+    }
+
+    private func updateStatusTitle() {
+        let title: String
+        if let weekly = lastCloud?.limits.weekly.usage {
+            title = String(format: "🦙 %.3f", weekly)
+        } else {
+            title = "🦙 —"
+        }
+        statusItem.button?.title = title
+    }
 }
