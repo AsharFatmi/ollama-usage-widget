@@ -176,6 +176,11 @@ final class PopoverViewController: NSViewController {
             value: String(format: "%.1f%% · %@ req", session.usage * 100, grouped(session.models.reduce(0) { $0 + $1.requestCount })),
             progress: session.usage
         ))
+        stack.addArrangedSubview(makeRingRow(
+            title: "Daily",
+            value: String(format: "%.1f%%", (controller?.dailyUsage ?? 0) * 100),
+            progress: controller?.dailyUsage ?? 0
+        ))
         stack.addArrangedSubview(makeRow(title: "Cost (4 wk)", value: "$\(cloud.activity.cost)"))
 
         for model in weekly.models {
@@ -227,6 +232,31 @@ final class PopoverViewController: NSViewController {
         bar.widthAnchor.constraint(equalToConstant: 300).isActive = true
 
         let column = NSStackView(views: [header, bar])
+        column.orientation = .vertical
+        column.alignment = .leading
+        column.spacing = 3
+        return column
+    }
+
+    /// Title + value on one line, with a hollow circular progress ring.
+    private func makeRingRow(title: String, value: String, progress: Double) -> NSView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.font = .systemFont(ofSize: 13)
+
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+
+        let header = NSStackView(views: [titleLabel, valueLabel])
+        header.orientation = .horizontal
+        header.alignment = .firstBaseline
+        header.spacing = 8
+
+        let ring = RingProgressView()
+        ring.progress = progress
+        ring.lineWidth = 5
+
+        let column = NSStackView(views: [header, ring])
         column.orientation = .vertical
         column.alignment = .leading
         column.spacing = 3

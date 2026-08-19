@@ -11,6 +11,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private(set) var lastLocal: PsResponse?
     private(set) var lastError: String?
     private(set) var lastUpdated: Date?
+    private(set) var dailyUsage: Double = 0
+    private var previousWeeklyUsage: Double?
+    private var dailyDay: Int?
+    private var lastNudgeAt: Date?
+    private var lastNudgedDaily: Double = 0
+    private let nudgeWindow = NudgeWindow(entries: [("Daily", 0), ("Weekly", 0), ("Session (5h)", 0)])
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -61,7 +67,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             let key = KeychainStore.read() ?? EnvFileReader.ollamaKey()
             if let key {
                 do {
-                    lastCloud = try await fetcher.fetchCloudUsage(apiKey: key)
+                    let cloud = try await fetcher.fetchCloudUsage(apiKey: key)
+                    trackDaily(weekly: cloud.limits.weekly.usage)
+                    lastCloud = cloud
                     lastError = nil
                 } catch {
                     lastError = "Cloud: \(error.localizedDescription)"
@@ -88,5 +96,43 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             title = "🦙 —"
         }
         statusItem.button?.title = title
+    }
+
+    /// The API exposes no daily window — accumulate the 5-min deltas of the
+    /// weekly number since local midnight. Resets each day.
+    private func trackDaily(weekly: Double) {
+        let now = Date()
+        let day = Calendar.current.ordinality(of: .day, in: .year, for: now) ?? 0
+        if dailyDay != day {
+            dailyDay = day
+            dailyUsage = 0
+            previousWeeklyUsage = nil
+        }
+        if let prev = previousWeeklyUsage {
+            let delta = weekly - prev
+            if delta > 0 { dailyUsage += delta }
+        }
+        previousWeeklyUsage = weekly
+        maybeNudge(now: now)
+    }
+
+    /// Show the Dynamic-Island-style pill when the daily usage crosses a
+    /// whole-percent boundary (max once per 5 minutes).
+    private func maybeNudge(now: Date) {
+        let crossed = Int(dailyUsage * 100) > Int(lastNudgedDaily * 100)
+        let cooldown = lastNudgeAt.map { now.timeIntervalSince($0) > 300 } ?? true
+        guard crossed, cooldown else { return }
+        lastNudgeAt = now
+        lastNudgedDaily = dailyUsage
+
+        let weekly = lastCloud?.limits.weekly.usage ?? 0
+        let session = lastCloud?.limits.session.usage ?? 0
+        nudgeWindow.update(entries: [
+            ("Daily", dailyUsage),
+            ("Weekly", weekly),
+            ("Session (5h)", session),
+        ])
+        nudgeWindow.setDetail(String(format: "Daily %.1f%% · Weekly %.1f%% · Session %.1f%%", dailyUsage * 100, weekly * 100, session * 100))
+        nudgeWindow.nudge()
     }
 }
