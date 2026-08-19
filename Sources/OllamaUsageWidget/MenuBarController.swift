@@ -108,7 +108,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         }
 
         let textSize = str.boundingRect(
-            with: NSSize(width: .greatestFiniteMagnitude, height: .greatestFiniteMagnitude),
+            with: NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading]
         ).size
         let padX: CGFloat = 18
