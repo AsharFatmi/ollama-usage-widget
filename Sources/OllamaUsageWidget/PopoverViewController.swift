@@ -23,6 +23,12 @@ final class PopoverViewController: NSViewController {
     private var countdownTimer: Timer?
     private var nextRefreshLabel: NSTextField?
 
+    // Collapse state, persisted across launches.
+    private enum SectionKey {
+        static let cloud = "sectionCollapsedCloud"
+        static let local = "sectionCollapsedLocal"
+    }
+
     init(controller: MenuBarController) {
         self.controller = controller
         super.init(nibName: nil, bundle: nil)
@@ -52,29 +58,42 @@ final class PopoverViewController: NSViewController {
             stack.removeArrangedSubview(sub)
             sub.removeFromSuperview()
         }
+        stack.spacing = 12
 
-        let header = NSTextField(labelWithString: "Ollama Cloud")
-        header.font = .boldSystemFont(ofSize: 13)
-        stack.addArrangedSubview(header)
-        stack.setCustomSpacing(10, after: header)
+        let cloudHeader = makeCollapsibleHeader(
+            title: "Ollama Cloud",
+            key: SectionKey.cloud,
+            action: #selector(toggleCloud)
+        )
+        stack.addArrangedSubview(cloudHeader)
 
-        if let cloud = controller?.lastCloud {
-            addCloudRows(cloud, to: stack)
-        } else if let error = controller?.lastError {
-            let label = NSTextField(wrappingLabelWithString: error)
-            label.textColor = .systemRed
-            label.font = .systemFont(ofSize: 12)
-            stack.addArrangedSubview(label)
-            // Activate after the label is in the hierarchy (crash otherwise:
-            // "constraint ... have no common ancestor")
-            label.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        } else {
-            let label = NSTextField(labelWithString: "Loading…")
-            label.textColor = .secondaryLabelColor
-            stack.addArrangedSubview(label)
+        if !UserDefaults.standard.bool(forKey: SectionKey.cloud) {
+            if let cloud = controller?.lastCloud {
+                addCloudRows(cloud, to: stack)
+            } else if let error = controller?.lastError {
+                let label = NSTextField(wrappingLabelWithString: error)
+                label.textColor = .systemRed
+                label.font = .systemFont(ofSize: 12)
+                stack.addArrangedSubview(label)
+                label.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            } else {
+                let label = NSTextField(labelWithString: "Loading…")
+                label.textColor = .secondaryLabelColor
+                stack.addArrangedSubview(label)
+            }
         }
 
-        addLocalSection(to: stack)
+        let localHeader = makeCollapsibleHeader(
+            title: "Local Ollama",
+            key: SectionKey.local,
+            action: #selector(toggleLocal)
+        )
+        stack.addArrangedSubview(localHeader)
+
+        if !UserDefaults.standard.bool(forKey: SectionKey.local) {
+            addLocalSection(to: stack)
+        }
+
         addFooter(to: stack)
 
         // Size the popover to fit the content (preferredContentSize is honored
@@ -83,6 +102,31 @@ final class PopoverViewController: NSViewController {
         let fitted = stack.fittingSize
         let height = ceil(fitted.height) + 24
         preferredContentSize = NSSize(width: 340, height: height)
+    }
+
+    /// Section header with a disclosure triangle; state persisted in UserDefaults.
+    private func makeCollapsibleHeader(title: String, key: String, action: Selector) -> NSView {
+        let collapsedState = UserDefaults.standard.bool(forKey: key)
+        let button = NSButton()
+        button.title = (collapsedState ? "▶ " : "▼ ") + title
+        button.font = .boldSystemFont(ofSize: 13)
+        button.isBordered = false
+        button.alignment = .left
+        button.target = self
+        button.action = action
+        return button
+    }
+
+    @objc private func toggleCloud() {
+        let current = UserDefaults.standard.bool(forKey: SectionKey.cloud)
+        UserDefaults.standard.set(!current, forKey: SectionKey.cloud)
+        controller?.refreshPopoverOnly()
+    }
+
+    @objc private func toggleLocal() {
+        let current = UserDefaults.standard.bool(forKey: SectionKey.local)
+        UserDefaults.standard.set(!current, forKey: SectionKey.local)
+        controller?.refreshPopoverOnly()
     }
 
     private func addLocalSection(to stack: NSStackView) {
@@ -177,17 +221,13 @@ final class PopoverViewController: NSViewController {
         let weekly = cloud.limits.weekly
         let session = cloud.limits.session
 
-        // Section 1 — ring grid: Weekly + Session
+        // Section 1 — ring grid: Weekly + Session, each centered in its own half
         let ringRow = NSStackView()
         ringRow.orientation = .horizontal
         ringRow.alignment = .centerY
-        ringRow.spacing = 30
-        ringRow.addArrangedSubview(makeRingCell(title: "Weekly", percent: weekly.usage, value: String(format: "%.1f%%", weekly.usage * 100)))
-        ringRow.addArrangedSubview(makeRingCell(
-            title: "Session (5h)",
-            percent: session.usage,
-            value: String(format: "%.1f%%", session.usage * 100)
-        ))
+        ringRow.distribution = .fillEqually
+        ringRow.addArrangedSubview(makeRingCell(title: "Weekly", percent: weekly.usage))
+        ringRow.addArrangedSubview(makeRingCell(title: "Session (5h)", percent: session.usage))
         stack.addArrangedSubview(ringRow)
 
         // Section 2 — model request counts as a horizontal bar chart
@@ -217,25 +257,8 @@ final class PopoverViewController: NSViewController {
         stack.addArrangedSubview(chart)
     }
 
-    private func makeRingCell(title: String, percent: Double, value: String) -> NSView {
-        let ring = RingProgressView()
-        ring.progress = percent
-        ring.lineWidth = 6
-
-        let label = NSTextField(labelWithString: value)
-        label.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
-        label.alignment = .center
-
-        let caption = NSTextField(labelWithString: title)
-        caption.font = .systemFont(ofSize: 10)
-        caption.textColor = .secondaryLabelColor
-        caption.alignment = .center
-
-        let column = NSStackView(views: [ring, label, caption])
-        column.orientation = .vertical
-        column.alignment = .centerX
-        column.spacing = 3
-        return column
+    private func makeRingCell(title: String, percent: Double) -> NSView {
+        RingCellView(title: title, percent: percent)
     }
 
     private func makeBarChartRow(title: String, value: String, fraction: Double) -> NSView {

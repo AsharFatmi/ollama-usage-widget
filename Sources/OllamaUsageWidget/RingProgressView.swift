@@ -39,3 +39,59 @@ final class RingProgressView: NSView {
         arc.stroke()
     }
 }
+
+/// Ring with the percentage + title centered inside the hollow.
+@MainActor
+final class RingCellView: NSView {
+    private let ring = RingProgressView()
+    private let percentLabel = NSTextField(labelWithString: "")
+    private let captionLabel = NSTextField(labelWithString: "")
+
+    override var intrinsicContentSize: NSSize { NSSize(width: 150, height: 64) }
+
+    init(title: String, percent: Double) {
+        super.init(frame: .zero)
+
+        ring.progress = percent
+        ring.lineWidth = 6
+        ring.ringColor = RingCellView.color(for: percent)
+
+        percentLabel.stringValue = String(format: "%.1f%%", percent * 100)
+        percentLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        percentLabel.alignment = .center
+        percentLabel.textColor = .labelColor
+
+        captionLabel.stringValue = title
+        captionLabel.font = .systemFont(ofSize: 9)
+        captionLabel.textColor = .secondaryLabelColor
+        captionLabel.alignment = .center
+
+        addSubview(ring)
+        addSubview(percentLabel)
+        addSubview(captionLabel)
+        ring.translatesAutoresizingMaskIntoConstraints = false
+        percentLabel.translatesAutoresizingMaskIntoConstraints = false
+        captionLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            ring.centerXAnchor.constraint(equalTo: centerXAnchor),
+            ring.topAnchor.constraint(equalTo: topAnchor),
+            ring.widthAnchor.constraint(equalToConstant: 64),
+            ring.heightAnchor.constraint(equalToConstant: 64),
+            percentLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            percentLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -4),
+            captionLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            captionLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: 10),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    private static func color(for percent: Double) -> NSColor {
+        switch percent {
+        case ..<0.5: return .systemGreen
+        case ..<0.8: return .systemYellow
+        default: return .systemRed
+        }
+    }
+}

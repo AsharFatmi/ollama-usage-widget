@@ -48,6 +48,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         timer?.invalidate()
     }
 
+    /// Re-render the popover without refetching (used by section toggles).
+    func refreshPopoverOnly() {
+        (popover.contentViewController as? PopoverViewController)?.reloadData()
+    }
+
     @objc private func togglePopover() {
         if popover.isShown {
             popover.performClose(nil)
