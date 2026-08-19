@@ -11,7 +11,6 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private(set) var lastLocal: PsResponse?
     private(set) var lastError: String?
     private(set) var lastUpdated: Date?
-    private let nudgeWindow = NudgeWindow(entries: [("Weekly", 0), ("Session (5h)", 0)])
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -66,7 +65,6 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
                 do {
                     lastCloud = try await fetcher.fetchCloudUsage(apiKey: key)
                     lastError = nil
-                    maybeNudge(now: Date())
                 } catch {
                     lastError = "Cloud: \(error.localizedDescription)"
                 }
@@ -123,18 +121,5 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         image.unlockFocus()
         image.isTemplate = false
         return image
-    }
-
-    /// Show the Dynamic-Island-style pill when the weekly usage crosses a
-    /// whole-percent boundary (max once per 5 minutes).
-    private func maybeNudge(now: Date) {
-        let weekly = lastCloud?.limits.weekly.usage ?? 0
-        let session = lastCloud?.limits.session.usage ?? 0
-        nudgeWindow.update(entries: [
-            ("Weekly", weekly),
-            ("Session (5h)", session),
-        ])
-        nudgeWindow.setDetail(String(format: "Weekly %.1f%% · Session %.1f%%", weekly * 100, session * 100))
-        nudgeWindow.nudge()
     }
 }

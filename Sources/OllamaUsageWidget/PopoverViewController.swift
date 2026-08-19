@@ -46,6 +46,17 @@ final class PopoverViewController: NSViewController {
         self.stack = stack
     }
 
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        // Grow the popover to fit content so the footer buttons are never cut off.
+        guard let stack, stack.frame.height > 0 else { return }
+        let needed = stack.frame.height + 24
+        if view.frame.height != needed {
+            view.setFrameSize(NSSize(width: 340, height: needed))
+            preferredContentSize = NSSize(width: 340, height: needed)
+        }
+    }
+
     func reloadData() {
         guard let stack else { return }
         for sub in stack.arrangedSubviews {
