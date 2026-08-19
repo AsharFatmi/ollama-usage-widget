@@ -48,6 +48,7 @@ final class PopoverViewController: NSViewController {
             stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
             stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
             stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: view.bottomAnchor, constant: -40),
         ])
         self.stack = stack
 
@@ -65,9 +66,35 @@ final class PopoverViewController: NSViewController {
         refreshButton.autoresizingMask = [.minXMargin, .minYMargin]
         view.addSubview(refreshButton, positioned: .above, relativeTo: stack)
         self.refreshButton = refreshButton
+
+        // Footer action buttons: Set Key… | Quit — each transparent, covering
+        // its half of the popover width, pinned to the bottom edge. Created
+        // ONCE here (frame-based, autoresizing) to avoid the AX deadlock of
+        // creating constrained buttons inside reloadData.
+        let footerHeight: CGFloat = 36
+        let setKeyButton = NSButton(title: "Set Key…", target: self, action: #selector(setKeyTapped))
+        setKeyButton.isBordered = false
+        setKeyButton.contentTintColor = .labelColor
+        setKeyButton.font = .systemFont(ofSize: 13)
+        setKeyButton.frame = NSRect(x: 0, y: 0, width: view.bounds.width / 2, height: footerHeight)
+        setKeyButton.autoresizingMask = [.width, .minYMargin]
+
+        let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitTapped))
+        quitButton.isBordered = false
+        quitButton.contentTintColor = .labelColor
+        quitButton.font = .systemFont(ofSize: 13)
+        quitButton.frame = NSRect(x: view.bounds.width / 2, y: 0, width: view.bounds.width / 2, height: footerHeight)
+        quitButton.autoresizingMask = [.width, .minYMargin]
+
+        view.addSubview(setKeyButton)
+        view.addSubview(quitButton)
+        self.setKeyButton = setKeyButton
+        self.quitButton = quitButton
     }
 
     private weak var refreshButton: NSButton?
+    private weak var setKeyButton: NSButton?
+    private weak var quitButton: NSButton?
 
     func reloadData() {
         guard let stack else { return }
@@ -175,14 +202,17 @@ final class PopoverViewController: NSViewController {
         nextRefreshLabel = nextRefresh
         updateCountdown()
         startCountdownTimer()
+    }
 
-        let setKeyButton = NSButton(title: "Set Key…", target: self, action: #selector(setKeyTapped))
-        let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitTapped))
-        let buttons = NSStackView(views: [setKeyButton, quitButton])
-        buttons.orientation = .horizontal
-        buttons.alignment = .centerY
-        buttons.spacing = 8
-        stack.addArrangedSubview(buttons)
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        // Keep the footer action buttons pinned to the bottom edge, each
+        // covering exactly half the popover width.
+        guard let setKeyButton, let quitButton else { return }
+        let footerHeight: CGFloat = 36
+        let half = view.bounds.width / 2
+        setKeyButton.frame = NSRect(x: 0, y: 0, width: half, height: footerHeight)
+        quitButton.frame = NSRect(x: half, y: 0, width: half, height: footerHeight)
     }
 
     private func startCountdownTimer() {
