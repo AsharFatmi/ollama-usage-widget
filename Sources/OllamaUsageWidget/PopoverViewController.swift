@@ -177,17 +177,89 @@ final class PopoverViewController: NSViewController {
         let weekly = cloud.limits.weekly
         let session = cloud.limits.session
 
-        stack.addArrangedSubview(makeBarRow(title: "Weekly", value: String(format: "%.1f%%", weekly.usage * 100), progress: weekly.usage))
-        stack.addArrangedSubview(makeBarRow(
+        // Section 1 — ring grid: Weekly + Session
+        let ringRow = NSStackView()
+        ringRow.orientation = .horizontal
+        ringRow.alignment = .centerY
+        ringRow.spacing = 30
+        ringRow.addArrangedSubview(makeRingCell(title: "Weekly", percent: weekly.usage, value: String(format: "%.1f%%", weekly.usage * 100)))
+        ringRow.addArrangedSubview(makeRingCell(
             title: "Session (5h)",
-            value: String(format: "%.1f%% · %@ req", session.usage * 100, grouped(session.models.reduce(0) { $0 + $1.requestCount })),
-            progress: session.usage
+            percent: session.usage,
+            value: String(format: "%.1f%%", session.usage * 100)
         ))
+        stack.addArrangedSubview(ringRow)
+
+        // Section 2 — model request counts as a horizontal bar chart
+        let modelHeader = NSTextField(labelWithString: "Activity by model")
+        modelHeader.font = .boldSystemFont(ofSize: 12)
+        modelHeader.textColor = .secondaryLabelColor
+        stack.addArrangedSubview(modelHeader)
+        stack.setCustomSpacing(2, after: modelHeader)
+
+        let maxCount = weekly.models.map { $0.requestCount }.max() ?? 0
+        for model in weekly.models {
+            let fraction = maxCount > 0 ? Double(model.requestCount) / Double(maxCount) : 0
+            stack.addArrangedSubview(makeBarChartRow(title: model.name, value: "\(grouped(model.requestCount)) req", fraction: fraction))
+        }
+
         stack.addArrangedSubview(makeRow(title: "Cost (4 wk)", value: "$\(cloud.activity.cost)"))
 
-        for model in weekly.models {
-            stack.addArrangedSubview(makeRow(title: model.name, value: "\(grouped(model.requestCount)) req"))
-        }
+        // Section 3 — 7-day activity line chart
+        let activityHeader = NSTextField(labelWithString: "7-day activity")
+        activityHeader.font = .boldSystemFont(ofSize: 12)
+        activityHeader.textColor = .secondaryLabelColor
+        stack.addArrangedSubview(activityHeader)
+        stack.setCustomSpacing(2, after: activityHeader)
+
+        let chart = ActivityChartView()
+        chart.values = ActivityStore.last7Days()
+        stack.addArrangedSubview(chart)
+    }
+
+    private func makeRingCell(title: String, percent: Double, value: String) -> NSView {
+        let ring = RingProgressView()
+        ring.progress = percent
+        ring.lineWidth = 6
+
+        let label = NSTextField(labelWithString: value)
+        label.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        label.alignment = .center
+
+        let caption = NSTextField(labelWithString: title)
+        caption.font = .systemFont(ofSize: 10)
+        caption.textColor = .secondaryLabelColor
+        caption.alignment = .center
+
+        let column = NSStackView(views: [ring, label, caption])
+        column.orientation = .vertical
+        column.alignment = .centerX
+        column.spacing = 3
+        return column
+    }
+
+    private func makeBarChartRow(title: String, value: String, fraction: Double) -> NSView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.font = .systemFont(ofSize: 13)
+
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+
+        let header = NSStackView(views: [titleLabel, valueLabel])
+        header.orientation = .horizontal
+        header.alignment = .firstBaseline
+        header.spacing = 8
+
+        let chart = BarChartView()
+        chart.fraction = CGFloat(fraction)
+        chart.color = .systemBlue
+
+        let column = NSStackView(views: [header, chart])
+        column.orientation = .vertical
+        column.alignment = .leading
+        column.spacing = 2
+        return column
     }
 
     private func grouped(_ count: Int) -> String {
@@ -207,36 +279,5 @@ final class PopoverViewController: NSViewController {
         row.alignment = .firstBaseline
         row.spacing = 8
         return row
-    }
-
-    /// Title + value on one line, with a progress bar underneath (usage fraction).
-    private func makeBarRow(title: String, value: String, progress: Double) -> NSView {
-        let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.textColor = .secondaryLabelColor
-        titleLabel.font = .systemFont(ofSize: 13)
-
-        let valueLabel = NSTextField(labelWithString: value)
-        valueLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
-
-        let header = NSStackView(views: [titleLabel, valueLabel])
-        header.orientation = .horizontal
-        header.alignment = .firstBaseline
-        header.spacing = 8
-
-        let bar = NSProgressIndicator()
-        bar.isIndeterminate = false
-        bar.style = .bar
-        bar.minValue = 0
-        bar.maxValue = 1
-        bar.doubleValue = min(max(progress, 0), 1)
-        bar.controlSize = .small
-        bar.translatesAutoresizingMaskIntoConstraints = false
-        bar.widthAnchor.constraint(equalToConstant: 300).isActive = true
-
-        let column = NSStackView(views: [header, bar])
-        column.orientation = .vertical
-        column.alignment = .leading
-        column.spacing = 3
-        return column
     }
 }

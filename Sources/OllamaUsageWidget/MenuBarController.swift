@@ -11,6 +11,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private(set) var lastLocal: PsResponse?
     private(set) var lastError: String?
     private(set) var lastUpdated: Date?
+    private var previousWeeklyUsage: Double?
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -63,7 +64,14 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             let key = KeychainStore.read() ?? EnvFileReader.ollamaKey()
             if let key {
                 do {
-                    lastCloud = try await fetcher.fetchCloudUsage(apiKey: key)
+                    let cloud = try await fetcher.fetchCloudUsage(apiKey: key)
+                    // Track daily activity: positive deltas of the weekly usage
+                    // number go into the activity store for the 7-day chart.
+                    if let prev = previousWeeklyUsage, cloud.limits.weekly.usage > prev {
+                        ActivityStore.add(delta: cloud.limits.weekly.usage - prev)
+                    }
+                    previousWeeklyUsage = cloud.limits.weekly.usage
+                    lastCloud = cloud
                     lastError = nil
                 } catch {
                     lastError = "Cloud: \(error.localizedDescription)"
