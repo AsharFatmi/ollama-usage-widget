@@ -83,7 +83,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private func updateStatusTitle() {
         let title: String
         if let weekly = lastCloud?.limits.weekly.usage {
-            title = String(format: "🦙 %.3f", weekly)
+            title = String(format: "🦙 %.1f%%", weekly * 100)
         } else {
             title = "🦙 —"
         }

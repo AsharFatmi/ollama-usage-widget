@@ -139,10 +139,10 @@ final class PopoverViewController: NSViewController {
         let weekly = cloud.limits.weekly
         let session = cloud.limits.session
 
-        stack.addArrangedSubview(makeRow(title: "Weekly", value: String(format: "%.3f", weekly.usage)))
+        stack.addArrangedSubview(makeRow(title: "Weekly", value: String(format: "%.1f%%", weekly.usage * 100)))
         stack.addArrangedSubview(makeRow(
             title: "Session",
-            value: String(format: "%.3f · %@ req", session.usage, grouped(session.models.reduce(0) { $0 + $1.requestCount }))
+            value: String(format: "%.1f%% · %@ req", session.usage * 100, grouped(session.models.reduce(0) { $0 + $1.requestCount }))
         ))
         stack.addArrangedSubview(makeRow(title: "Cost (4 wk)", value: "$\(cloud.activity.cost)"))
 
