@@ -50,7 +50,24 @@ final class PopoverViewController: NSViewController {
             stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
         ])
         self.stack = stack
+
+        // Refresh icon button, top-right corner. Created ONCE here (not per
+        // reload) and positioned with a frame + autoresizing — no constraints,
+        // no stack involvement. Creating/constraining buttons inside reloadData
+        // deadlocks when the popover opens via an accessibility-triggered click.
+        let refreshButton = NSButton(image: NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: "Refresh")!,
+                                     target: self, action: #selector(refreshTapped))
+        refreshButton.isBordered = false
+        refreshButton.contentTintColor = .secondaryLabelColor
+        refreshButton.toolTip = "Refresh"
+        refreshButton.setAccessibilityLabel("Refresh")
+        refreshButton.frame = NSRect(x: view.bounds.width - 34, y: view.bounds.height - 30, width: 20, height: 20)
+        refreshButton.autoresizingMask = [.minXMargin, .minYMargin]
+        view.addSubview(refreshButton, positioned: .above, relativeTo: stack)
+        self.refreshButton = refreshButton
     }
+
+    private weak var refreshButton: NSButton?
 
     func reloadData() {
         guard let stack else { return }
@@ -159,10 +176,9 @@ final class PopoverViewController: NSViewController {
         updateCountdown()
         startCountdownTimer()
 
-        let refreshButton = NSButton(title: "Refresh", target: self, action: #selector(refreshTapped))
         let setKeyButton = NSButton(title: "Set Key…", target: self, action: #selector(setKeyTapped))
         let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitTapped))
-        let buttons = NSStackView(views: [refreshButton, setKeyButton, quitButton])
+        let buttons = NSStackView(views: [setKeyButton, quitButton])
         buttons.orientation = .horizontal
         buttons.alignment = .centerY
         buttons.spacing = 8
