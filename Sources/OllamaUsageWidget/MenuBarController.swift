@@ -25,7 +25,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private func setupStatusItem() {
         if let button = statusItem.button {
             button.title = ""
-            button.image = makePillImage(percent: nil)
+            button.image = makePillImage(weekly: nil, session: nil)
             button.imagePosition = .imageOnly
             button.target = self
             button.action = #selector(togglePopover)
