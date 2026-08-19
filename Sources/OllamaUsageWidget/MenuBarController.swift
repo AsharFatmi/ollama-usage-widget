@@ -99,11 +99,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
         let str = NSMutableAttributedString()
         str.append(NSAttributedString(string: "🦙 ", attributes: [.font: emojiFont, .foregroundColor: white]))
-        if let weekly {
-            str.append(NSAttributedString(string: String(format: "%.1f%%", weekly * 100), attributes: [.font: mono, .foregroundColor: white]))
-            if let session {
+        if let session {
+            str.append(NSAttributedString(string: String(format: "%.1f%%", session * 100), attributes: [.font: mono, .foregroundColor: white]))
+            if let weekly {
                 str.append(NSAttributedString(string: " · ", attributes: [.font: mono, .foregroundColor: dim]))
-                str.append(NSAttributedString(string: String(format: "%.1f%%", session * 100), attributes: [.font: mono, .foregroundColor: dim]))
+                str.append(NSAttributedString(string: String(format: "%.1f%%", weekly * 100), attributes: [.font: mono, .foregroundColor: dim]))
             }
         } else {
             str.append(NSAttributedString(string: "—", attributes: [.font: mono, .foregroundColor: white]))
