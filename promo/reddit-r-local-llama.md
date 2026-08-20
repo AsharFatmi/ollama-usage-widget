@@ -20,6 +20,13 @@ Install:
 curl -fsSL https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/install.sh | bash
 ```
 
+or via Homebrew:
+
+```
+brew tap asharfatmi/tap
+brew install --cask ollama-usage-widget
+```
+
 or grab the DMG from https://github.com/AsharFatmi/ollama-usage-widget/releases
 
 Key goes in the macOS Keychain, never plaintext.

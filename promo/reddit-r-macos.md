@@ -23,6 +23,13 @@ Install (10 seconds):
 curl -fsSL https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/install.sh | bash
 ```
 
+Or via Homebrew:
+
+```bash
+brew tap asharfatmi/tap
+brew install --cask ollama-usage-widget
+```
+
 Or grab the DMG from the releases page: https://github.com/AsharFatmi/ollama-usage-widget/releases
 
 The story: I burned through my weekly quota twice last month and only found out when a job failed mid-run. A tiny always-visible pill fixes that whole class of problem.

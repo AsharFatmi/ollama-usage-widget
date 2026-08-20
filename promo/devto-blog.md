@@ -44,7 +44,14 @@ I want to be straight about one thing: that endpoint is undocumented. Ollama cou
 curl -fsSL https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/install.sh | bash
 ```
 
-That downloads the latest release, puts the app in `/Applications`, and sets up a launch agent so it starts when you log in and stays alive. Because the file comes via curl, there's no quarantine flag and no Gatekeeper nagging.
+That downloads the latest release, puts the app in `/Applications`, and starts up a launch agent so it starts when you log in and stays alive. Because the file comes via curl, there's no quarantine flag and no Gatekeeper nagging.
+
+Prefer Homebrew? That works too:
+
+```bash
+brew tap asharfatmi/tap
+brew install --cask ollama-usage-widget
+```
 
 Prefer manual? The DMG is on the [releases page](https://github.com/AsharFatmi/ollama-usage-widget/releases). After that, click the pill, pick Set Key…, paste your Ollama Cloud API key, and you're done.
 

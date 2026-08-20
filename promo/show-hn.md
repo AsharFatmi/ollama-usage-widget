@@ -17,6 +17,11 @@ Install:
 
     curl -fsSL https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/install.sh | bash
 
+Or via Homebrew:
+
+    brew tap asharfatmi/tap
+    brew install --cask ollama-usage-widget
+
 Or grab the DMG from the releases page: https://github.com/AsharFatmi/ollama-usage-widget/releases
 
 Set your key via the pill → Set Key… and that's it.
