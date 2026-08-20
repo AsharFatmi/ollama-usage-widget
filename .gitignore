@@ -7,3 +7,6 @@
 .env
 .env.local
 !/.env.example
+
+# Promotional drafts (dev.to / HN / Reddit posts)
+promo/
