@@ -19,6 +19,8 @@ So I built something.
 
 Ollama Usage Widget is a native macOS menu bar app. Swift and AppKit, no Electron, no webview, no extra runtime. Just a small pill at the top of your screen that tells you the truth.
 
+[![GitHub](https://img.shields.io/badge/GitHub-AsharFatmi%2Follama--usage--widget-181717?style=flat&logo=github&logoColor=white)](https://github.com/AsharFatmi/ollama-usage-widget)
+
 ![The menu bar pill: a black capsule showing the llama icon and session and weekly usage percentages](https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/docs/pill.png)
 
 What it does:
