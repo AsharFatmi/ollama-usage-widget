@@ -1,10 +1,10 @@
 ## Description
 
-Adds the Ollama Usage Widget — a native macOS menu bar utility for tracking Ollama Cloud usage (weekly/session quotas, per-model request counts, cost) and local Ollama server state.
+Adds the Ollama Usage Widget — a native macOS menu bar utility for tracking Ollama Cloud usage (weekly/session quotas, 7-day request totals) and local Ollama server state.
 
 - Homepage: https://github.com/AsharFatmi/ollama-usage-widget
-- Release: https://github.com/AsharFatmi/ollama-usage-widget/releases/tag/v1.0.0
-- DMG: https://github.com/AsharFatmi/ollama-usage-widget/releases/download/v1.0.0/OllamaUsageWidget-1.0.0.dmg
+- Release: https://github.com/AsharFatmi/ollama-usage-widget/releases/tag/v1.0.1
+- DMG: https://github.com/AsharFatmi/ollama-usage-widget/releases/download/v1.0.1/OllamaUsageWidget-1.0.1.dmg
 - ARM64 only (Apple Silicon); cask token: `ollama-usage-widget`
 
 -----
