@@ -2,6 +2,7 @@
 .swiftpm/
 .DS_Store
 .hermes.md
+dist/
 
 # Never commit real credentials
 .env

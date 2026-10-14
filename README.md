@@ -1,6 +1,6 @@
 # 🦙 Ollama Usage Widget
 
-A native macOS menu bar widget that tracks your **Ollama Cloud** usage (weekly & session quotas, per-model request counts, cost) and your **local Ollama** server state — right from the menu bar.
+A native macOS menu bar widget that tracks your **Ollama Cloud** usage (weekly & session quota rings, 7-day request totals) and your **local Ollama** server state — right from the menu bar.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AsharFatmi/ollama-usage-widget/master/docs/pill.png" alt="Menu bar pill preview" width="640">
@@ -14,8 +14,8 @@ A native macOS menu bar widget that tracks your **Ollama Cloud** usage (weekly &
 
 - **Menu bar pill** — black iPhone-island style pill showing session % + weekly % at a glance
 - **Weekly & Session rings** — hollow progress rings with percentages centered inside
-- **Activity by model** — horizontal bar chart of request counts per model
-- **7-day activity chart** — usage trend over the last week (day-of-month labels)
+- **Request totals** — requests over the last 7 days, plus cost when your plan reports it
+- **7-day activity chart** — built from Ollama's own usage buckets, live from day one
 - **Local Ollama state** — loaded models and VRAM usage via `GET /api/ps`
 - **Auto-refresh** — polls every 5 minutes; manual refresh via the top-right icon
 - **Collapsible sections** — Ollama Cloud / Local Ollama, state remembered
@@ -23,11 +23,13 @@ A native macOS menu bar widget that tracks your **Ollama Cloud** usage (weekly &
 
 ## Requirements
 
-- macOS 14.0+ (Apple Silicon or Intel)
+- macOS 14.0+ (Apple Silicon)
 - [Ollama](https://ollama.com) account with Cloud usage enabled
 - An Ollama Cloud API key
 
-> ⚠️ **Note:** The widget uses the **undocumented** `https://ollama.com/api/usage` endpoint. It may change or become gated at any time. If it breaks, please open an issue.
+> ⚠️ **Note:** The widget reads Ollama's cloud usage endpoints (`GET /api/balance` and `GET /api/usage?range=7d`). Ollama doesn't version these, and the response shape already changed once — that fix shipped as **v1.0.1**. If something breaks, please open an issue.
+>
+> Per-model breakdowns were removed from Ollama's API (their docs say "coming soon"), so that view is unavailable for now.
 
 ## Install
 
@@ -100,9 +102,10 @@ rm ~/Library/LaunchAgents/com.asharfatmi.ollama-usage-widget.plist
 
 | Data | Source |
 |------|--------|
-| Weekly / session usage, per-model requests, cost | `GET https://ollama.com/api/usage` (Bearer token) |
+| Weekly / session quota (used %) | `GET https://ollama.com/api/balance` (Bearer token) |
+| Requests + cost (7d) | `GET https://ollama.com/api/usage?range=7d` (Bearer token) |
+| 7-day activity chart | the `buckets` from that same usage request |
 | Local models + VRAM | `GET http://localhost:11434/api/ps` |
-| 7-day activity history | locally accumulated daily deltas (the API exposes no history) |
 
 The API key is never stored in the app bundle — it lives in your Keychain or env file only.
 

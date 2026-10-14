@@ -14,7 +14,7 @@ set -euo pipefail
 APP_NAME="OllamaUsageWidget"
 BUNDLE_ID="com.asharfatmi.ollama-usage-widget"
 REPO="AsharFatmi/ollama-usage-widget"
-FALLBACK_VERSION="v1.0.0"
+FALLBACK_VERSION="v1.0.1"
 LAUNCH_AGENT="$HOME/Library/LaunchAgents/$BUNDLE_ID.plist"
 
 # arm64-only build: bail with a clear message on Intel instead of a cryptic error.

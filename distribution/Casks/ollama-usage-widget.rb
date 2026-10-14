@@ -1,6 +1,6 @@
 cask "ollama-usage-widget" do
-  version "1.0.0"
-  sha256 "17a9c204d4323df97514558cbf9c845089dea03ab4ae0a28ec4543e17355c475"
+  version "1.0.1"
+  sha256 "fd701ee537e284318ed7f9dc5d0d76fba2ec40437a7ffe4462271516858a65c7"
 
   url "https://github.com/AsharFatmi/ollama-usage-widget/releases/download/v#{version}/OllamaUsageWidget-#{version}.dmg"
   name "Ollama Usage Widget"
