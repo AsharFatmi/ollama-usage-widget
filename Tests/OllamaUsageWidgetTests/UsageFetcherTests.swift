@@ -39,31 +39,53 @@ private func makeMockSession() -> URLSession {
 // Tests share the static MockURLProtocol.handler, so they must not run in parallel.
 @Suite(.serialized)
 struct UsageFetcherTests {
-    @Test func cloudSuccessSendsBearerHeaderAndDecodes() async throws {
+    @Test func balanceSuccessSendsBearerHeaderAndDecodes() async throws {
         let expectedKey = "test-api-key-123"
         var capturedAuth: String?
         var capturedTimeout: TimeInterval?
+        var capturedPath: String?
         MockURLProtocol.handler = { request in
             capturedAuth = request.value(forHTTPHeaderField: "Authorization")
             capturedTimeout = request.timeoutInterval
+            capturedPath = request.url?.path
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             let json = """
-            {"activity":{"cost":"0.00000","period":{"type":"last_4_weeks","starting_at":"2026-07-27T00:00:00Z","ending_at":"2026-08-19T12:43:30Z"},"models":[]},"limits":{"session":{"usage":0.003,"models":[]},"weekly":{"usage":0.213,"models":[{"name":"deepseek-v4-flash:0731","request_count":5046}]}}}
+            {"included":{"session":{"remaining_percent":84.58,"resets_at":"2026-10-14T05:00:00Z"},"weekly":{"remaining_percent":95.93,"resets_at":"2026-10-19T00:00:00Z"}},"purchased":{"balance_usd":0}}
             """
             return (response, Data(json.utf8))
         }
         defer { MockURLProtocol.handler = nil }
 
         let fetcher = UsageFetcher(session: makeMockSession())
-        let usage = try await fetcher.fetchCloudUsage(apiKey: expectedKey)
+        let balance = try await fetcher.fetchBalance(apiKey: expectedKey)
 
         #expect(capturedAuth == "Bearer \(expectedKey)")
         #expect(capturedTimeout == 10)
-        #expect(usage.limits.weekly.usage == 0.213)
-        #expect(usage.limits.weekly.models[0].requestCount == 5046)
+        #expect(capturedPath == "/api/balance")
+        #expect(balance.included.weekly?.remainingPercent == 95.93)
     }
 
-    @Test func cloud401ThrowsHttpStatus() async throws {
+    @Test func usageHistoryRequestsSevenDayRange() async throws {
+        var capturedQuery: String?
+        MockURLProtocol.handler = { request in
+            capturedQuery = request.url?.query
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let json = """
+            {"range":"7d","granularity":"day","from":"2026-10-07T00:00:00Z","until":"2026-10-14T01:00:00Z","totals":{"request_count":447},"buckets":[{"from":"2026-10-07T00:00:00Z","until":"2026-10-08T00:00:00Z","request_count":0},{"from":"2026-10-08T00:00:00Z","until":"2026-10-09T00:00:00Z","request_count":19}]}
+            """
+            return (response, Data(json.utf8))
+        }
+        defer { MockURLProtocol.handler = nil }
+
+        let fetcher = UsageFetcher(session: makeMockSession())
+        let usage = try await fetcher.fetchUsageHistory(apiKey: "test-key")
+
+        #expect(capturedQuery == "range=7d")
+        #expect(usage.totals.requestCount == 447)
+        #expect(usage.buckets.count == 2)
+    }
+
+    @Test func balance401ThrowsHttpStatus() async throws {
         MockURLProtocol.handler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 401, httpVersion: nil, headerFields: nil)!
             return (response, Data())
@@ -72,14 +94,16 @@ struct UsageFetcherTests {
 
         let fetcher = UsageFetcher(session: makeMockSession())
         await #expect(throws: FetchError.httpStatus(401)) {
-            _ = try await fetcher.fetchCloudUsage(apiKey: "k")
+            _ = try await fetcher.fetchBalance(apiKey: "bad-key")
         }
     }
 
     @Test func localSuccessDecodesPsResponse() async throws {
         var capturedTimeout: TimeInterval?
+        var capturedAuth: String?
         MockURLProtocol.handler = { request in
             capturedTimeout = request.timeoutInterval
+            capturedAuth = request.value(forHTTPHeaderField: "Authorization")
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             let json = """
             {"models":[{"name":"llama3.2:3b","size":2019553184,"size_vram":2019553184,"expires_at":"2026-08-19T06:00:00Z"}]}
@@ -92,6 +116,7 @@ struct UsageFetcherTests {
         let ps = try await fetcher.fetchLocalProcesses()
 
         #expect(capturedTimeout == 5)
+        #expect(capturedAuth == nil) // local endpoint carries no auth header
         #expect(ps.models.count == 1)
         #expect(ps.models[0].name == "llama3.2:3b")
         #expect(ps.models[0].sizeVram == 2019553184)

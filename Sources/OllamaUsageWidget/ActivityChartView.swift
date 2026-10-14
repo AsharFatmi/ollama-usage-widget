@@ -1,7 +1,7 @@
 import AppKit
 
-/// 7-day activity line chart. Values are daily deltas of the weekly usage
-/// number (persisted by the app since the API exposes no history).
+/// 7-day activity line chart. Values are daily request counts from the
+/// /api/usage?range=7d buckets (oldest → newest; the last bucket is today).
 @MainActor
 final class ActivityChartView: NSView {
     /// 7 values, oldest → newest (usage fraction per day, e.g. 0.034).

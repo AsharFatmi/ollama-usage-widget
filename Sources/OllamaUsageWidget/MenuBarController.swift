@@ -7,11 +7,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private let fetcher = UsageFetcher()
     private var timer: Timer?
 
-    private(set) var lastCloud: UsageResponse?
+    private(set) var lastBalance: BalanceResponse?
+    private(set) var lastUsage: UsageResponse?
     private(set) var lastLocal: PsResponse?
     private(set) var lastError: String?
     private(set) var lastUpdated: Date?
-    private var previousWeeklyUsage: Double?
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -69,17 +69,16 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             let key = KeychainStore.read() ?? EnvFileReader.ollamaKey()
             if let key {
                 do {
-                    let cloud = try await fetcher.fetchCloudUsage(apiKey: key)
-                    // Track daily activity: positive deltas of the weekly usage
-                    // number go into the activity store for the 7-day chart.
-                    if let prev = previousWeeklyUsage, cloud.limits.weekly.usage > prev {
-                        ActivityStore.add(delta: cloud.limits.weekly.usage - prev)
-                    }
-                    previousWeeklyUsage = cloud.limits.weekly.usage
-                    lastCloud = cloud
+                    lastBalance = try await fetcher.fetchBalance(apiKey: key)
                     lastError = nil
                 } catch {
                     lastError = "Cloud: \(error.localizedDescription)"
+                }
+                do {
+                    // Usage history is best-effort; keep the last good copy on failure.
+                    lastUsage = try await fetcher.fetchUsageHistory(apiKey: key)
+                } catch {
+                    // no-op — rings still render from balance
                 }
             } else {
                 lastError = "No API key set — use Set Key… in the popover"
@@ -96,12 +95,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
 
     private func updateStatusTitle() {
-        let weekly = lastCloud?.limits.weekly.usage
-        let session = lastCloud?.limits.session.usage
+        let weekly = lastBalance?.included.weekly?.usedFraction
+        let session = lastBalance?.included.session?.usedFraction
         statusItem.button?.image = makePillImage(weekly: weekly, session: session)
     }
 
-    /// Black iPhone-island-style pill: 🦙 + weekly % + session %.
+    /// Black iPhone-island-style pill: 🦙 + session % + weekly %.
     private func makePillImage(weekly: Double?, session: Double?) -> NSImage {
         let mono = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
         let emojiFont = NSFont.systemFont(ofSize: 12)

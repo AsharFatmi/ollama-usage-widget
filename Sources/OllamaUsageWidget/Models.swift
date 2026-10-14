@@ -1,47 +1,82 @@
 import Foundation
 
-// MARK: - Cloud usage (GET https://ollama.com/api/usage)
+// MARK: - Cloud balance (GET https://ollama.com/api/balance)
+//
+// Documented endpoint (see Ollama's cloud API docs). Legacy plans (session +
+// weekly limits) return percent-remaining windows with reset times; newer
+// plans return dollar balances instead.
 
-struct UsageResponse: Codable, Sendable {
-    let activity: Activity
-    let limits: Limits
-}
+struct BalanceResponse: Codable, Sendable {
+    let included: Included
+    let purchased: Purchased?
 
-struct Activity: Codable, Sendable {
-    let cost: String
-    let period: Period
-    let models: [ModelUsage]
-}
+    struct Included: Codable, Sendable {
+        let session: Window?
+        let weekly: Window?
+        let balanceUSD: Double?
+        let allowanceUSD: Double?
 
-struct Period: Codable, Sendable {
-    let type: String
-    let startingAt: String
-    let endingAt: String
+        enum CodingKeys: String, CodingKey {
+            case session, weekly
+            case balanceUSD = "balance_usd"
+            case allowanceUSD = "allowance_usd"
+        }
+    }
 
-    enum CodingKeys: String, CodingKey {
-        case type
-        case startingAt = "starting_at"
-        case endingAt = "ending_at"
+    struct Window: Codable, Sendable {
+        let remainingPercent: Double
+        let resetsAt: String
+
+        enum CodingKeys: String, CodingKey {
+            case remainingPercent = "remaining_percent"
+            case resetsAt = "resets_at"
+        }
+
+        /// Fraction of the window's quota already used (0…1).
+        var usedFraction: Double { max(0, min(1, (100 - remainingPercent) / 100)) }
+    }
+
+    struct Purchased: Codable, Sendable {
+        let balanceUSD: Double
+
+        enum CodingKeys: String, CodingKey {
+            case balanceUSD = "balance_usd"
+        }
     }
 }
 
-struct Limits: Codable, Sendable {
-    let session: LimitBucket
-    let weekly: LimitBucket
-}
+// MARK: - Cloud usage history (GET https://ollama.com/api/usage?range=7d)
 
-struct LimitBucket: Codable, Sendable {
-    let usage: Double
-    let models: [ModelUsage]
-}
+struct UsageResponse: Codable, Sendable {
+    let range: String
+    let granularity: String?
+    let from: String
+    let until: String
+    let totals: Totals
+    let buckets: [Bucket]
 
-struct ModelUsage: Codable, Sendable {
-    let name: String
-    let requestCount: Int
+    struct Totals: Codable, Sendable {
+        let requestCount: Int
+        let usageUSD: Double?
 
-    enum CodingKeys: String, CodingKey {
-        case name
-        case requestCount = "request_count"
+        enum CodingKeys: String, CodingKey {
+            case requestCount = "request_count"
+            case usageUSD = "usage_usd"
+        }
+    }
+
+    struct Bucket: Codable, Sendable {
+        let from: String
+        let until: String
+        let partial: Bool?
+        let requestCount: Int
+        let usageUSD: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case from, until, partial
+            case requestCount = "request_count"
+            case usageUSD = "usage_usd"
+        }
     }
 }
 

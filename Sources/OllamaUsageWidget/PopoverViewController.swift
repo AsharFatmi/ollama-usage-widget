@@ -112,8 +112,8 @@ final class PopoverViewController: NSViewController {
         stack.addArrangedSubview(cloudHeader)
 
         if !UserDefaults.standard.bool(forKey: SectionKey.cloud) {
-            if let cloud = controller?.lastCloud {
-                addCloudRows(cloud, to: stack)
+            if let balance = controller?.lastBalance {
+                addCloudRows(balance: balance, usage: controller?.lastUsage, to: stack)
             } else if let error = controller?.lastError {
                 let label = NSTextField(wrappingLabelWithString: error)
                 label.textColor = .systemRed
@@ -263,72 +263,41 @@ final class PopoverViewController: NSViewController {
         NSApp.terminate(nil)
     }
 
-    private func addCloudRows(_ cloud: UsageResponse, to stack: NSStackView) {
-        let weekly = cloud.limits.weekly
-        let session = cloud.limits.session
-
+    private func addCloudRows(balance: BalanceResponse, usage: UsageResponse?, to stack: NSStackView) {
         // Section 1 — ring grid: Weekly + Session, each centered in its own half
         let ringRow = NSStackView()
         ringRow.orientation = .horizontal
         ringRow.alignment = .centerY
         ringRow.distribution = .fillEqually
-        ringRow.addArrangedSubview(makeRingCell(title: "Weekly", percent: weekly.usage))
-        ringRow.addArrangedSubview(makeRingCell(title: "Session (5h)", percent: session.usage))
+        ringRow.addArrangedSubview(makeRingCell(title: "Weekly", percent: balance.included.weekly?.usedFraction ?? 0))
+        ringRow.addArrangedSubview(makeRingCell(title: "Session (5h)", percent: balance.included.session?.usedFraction ?? 0))
         stack.addArrangedSubview(ringRow)
 
-        // Section 2 — model request counts as a horizontal bar chart
-        let modelHeader = NSTextField(labelWithString: "Activity by model")
-        modelHeader.font = .boldSystemFont(ofSize: 12)
-        modelHeader.textColor = .secondaryLabelColor
-        stack.addArrangedSubview(modelHeader)
-        stack.setCustomSpacing(2, after: modelHeader)
-
-        let maxCount = weekly.models.map { $0.requestCount }.max() ?? 0
-        for model in weekly.models {
-            let fraction = maxCount > 0 ? Double(model.requestCount) / Double(maxCount) : 0
-            stack.addArrangedSubview(makeBarChartRow(title: model.name, value: "\(grouped(model.requestCount)) req", fraction: fraction))
+        // Section 2 — totals from the usage endpoint
+        if let usage {
+            stack.addArrangedSubview(makeRow(title: "Requests (7d)", value: grouped(usage.totals.requestCount)))
+            if let usd = usage.totals.usageUSD {
+                stack.addArrangedSubview(makeRow(title: "Cost (7d)", value: String(format: "$%.4f", usd)))
+            }
         }
 
-        stack.addArrangedSubview(makeRow(title: "Cost (4 wk)", value: "$\(cloud.activity.cost)"))
+        // Section 3 — 7-day activity line chart, straight from the API buckets
+        if let usage, usage.buckets.count > 1 {
+            let activityHeader = NSTextField(labelWithString: "7-day activity")
+            activityHeader.font = .boldSystemFont(ofSize: 12)
+            activityHeader.textColor = .secondaryLabelColor
+            stack.addArrangedSubview(activityHeader)
+            stack.setCustomSpacing(2, after: activityHeader)
 
-        // Section 3 — 7-day activity line chart
-        let activityHeader = NSTextField(labelWithString: "7-day activity")
-        activityHeader.font = .boldSystemFont(ofSize: 12)
-        activityHeader.textColor = .secondaryLabelColor
-        stack.addArrangedSubview(activityHeader)
-        stack.setCustomSpacing(2, after: activityHeader)
-
-        let chart = ActivityChartView()
-        chart.values = ActivityStore.last7Days()
-        stack.addArrangedSubview(chart)
+            let chart = ActivityChartView()
+            // Last 7 buckets, oldest → newest (the final bucket is today, partial).
+            chart.values = usage.buckets.suffix(7).map { Double($0.requestCount) }
+            stack.addArrangedSubview(chart)
+        }
     }
 
     private func makeRingCell(title: String, percent: Double) -> NSView {
         RingCellView(title: title, percent: percent)
-    }
-
-    private func makeBarChartRow(title: String, value: String, fraction: Double) -> NSView {
-        let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.textColor = .secondaryLabelColor
-        titleLabel.font = .systemFont(ofSize: 13)
-
-        let valueLabel = NSTextField(labelWithString: value)
-        valueLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
-
-        let header = NSStackView(views: [titleLabel, valueLabel])
-        header.orientation = .horizontal
-        header.alignment = .firstBaseline
-        header.spacing = 8
-
-        let chart = BarChartView()
-        chart.fraction = CGFloat(fraction)
-        chart.color = .systemBlue
-
-        let column = NSStackView(views: [header, chart])
-        column.orientation = .vertical
-        column.alignment = .leading
-        column.spacing = 2
-        return column
     }
 
     private func grouped(_ count: Int) -> String {
